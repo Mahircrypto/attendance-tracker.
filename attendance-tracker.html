@@ -1,134 +1,180 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cloud Student Attendance Tracker</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-body { font-family: 'Inter', sans-serif; background-color: #f7f9fc; }
-.container { max-width: 1200px; margin: auto; padding: 1.5rem; }
-.icon { font-size: 1.5rem; }
-.btn-primary, .btn-secondary { border-radius: 0.5rem; font-weight: 600; padding: 0.75rem 1.25rem; }
-.btn-primary { background-color: #4f46e5; color: #fff; }
-.btn-secondary { background-color: #e5e7eb; color: #374151; }
-.card { background-color: #fff; border-radius: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 2rem; }
-.badge { font-size: 0.875rem; font-weight: 500; padding: 0.25rem 0.75rem; border-radius: 9999px; }
-.status-present { background-color: #d1fae5; color: #065f46; }
-.status-late { background-color: #fef3c7; color: #92400e; }
-.status-absent { background-color: #fee2e2; color: #991b1b; }
-.status-excused { background-color: #e0f2fe; color: #075985; }
-.modal { background-color: rgba(0,0,0,0.5); }
-.loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background-color: rgba(255,255,255,0.9); display:flex; flex-direction: column; justify-content:center; align-items:center; z-index:100; }
-.spinner { border:4px solid #f3f3f3; border-top:4px solid #4f46e5; border-radius:50%; width:40px; height:40px; animation: spin 1s linear infinite; }
-@keyframes spin { 0% {transform:rotate(0deg);} 100% {transform:rotate(360deg);} }
-.hidden { display: none; }
-.table-responsive { overflow-x:auto; }
-table { width:100%; min-width:768px; border-collapse:collapse; }
-th, td { padding:0.75rem; text-align:left; border-bottom:1px solid #e5e7eb; }
-th { background-color:#f9fafb; font-weight:600; text-transform:uppercase; font-size:0.875rem; color:#6b7280; }
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Cloud Student Attendance Tracker — All-in-one</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; background:#f3f4f6; }
+    .card { background:white; border-radius:12px; box-shadow:0 6px 18px rgba(0,0,0,0.06); }
+    .badge { display:inline-block; padding:0.25rem 0.5rem; border-radius:9999px; font-weight:600; font-size:0.75rem; }
+    .status-present { background:#d1fae5; color:#065f46; }
+    .status-absent  { background:#fee2e2; color:#991b1b; }
+    .status-excuse  { background:#fef3c7; color:#92400e; }
+    .status-late    { background:#e0e7ff; color:#1e40af; }
+    .loading { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:60; background:rgba(255,255,255,0.85); }
+    .hidden { display:none !important; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { padding:0.75rem; border-bottom:1px solid #e6e9ef; text-align:left; vertical-align:middle; }
+    th { background:#fafbfc; font-size:0.8rem; text-transform:uppercase; color:#6b7280; }
+    .small { font-size:0.85rem; }
+    .btn { padding:.45rem .8rem; border-radius:8px; font-weight:600; }
+    .btn-ghost { background:#f3f4f6; color:#111827; }
+    .btn-primary { background:#2563eb; color:white; }
+    .status-btn { padding:.35rem .7rem; border-radius:8px; font-weight:600; cursor:pointer; }
+    .flex-row-gap { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center;}
+    .message { position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:#111827; color:white; padding:.5rem 1rem; border-radius:8px; z-index:70; opacity:.95; }
+  </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body>
 
-<div id="loading-overlay" class="loading-overlay">
-    <div class="spinner"></div>
-    <p id="loading-message" class="mt-4 text-lg text-gray-700">Connecting to cloud database...</p>
-    <p class="text-sm text-gray-500 mt-2">Your data will be available from any device.</p>
-</div>
+  <!-- Loading overlay -->
+  <div id="loading" class="loading">
+    <div class="card p-6 text-center">
+      <div class="animate-spin border-4 border-t-4 border-gray-200 border-t-blue-500 rounded-full w-12 h-12 mx-auto"></div>
+      <h3 class="mt-4 text-lg font-semibold">Connecting to cloud database...</h3>
+      <p class="text-sm text-gray-500 mt-2">Signing in anonymously and syncing data.</p>
+    </div>
+  </div>
 
-<div class="container mx-auto py-8 px-4">
-    <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+  <div id="app" class="max-w-6xl mx-auto p-6 hidden">
+    <header class="mb-6">
+      <div class="flex justify-between items-start gap-4">
         <div>
-            <h1 class="text-3xl font-bold text-gray-800">Cloud Student Attendance Tracker</h1>
-            <p class="text-gray-500 text-sm">A simple, interactive template with powerful features.</p>
+          <h1 class="text-3xl font-bold">Cloud Student Attendance Tracker</h1>
+          <p class="text-gray-600 mt-1">Mark attendance fast — CSV export included.</p>
         </div>
-        <div class="flex items-center space-x-2 mt-4 sm:mt-0 text-sm text-gray-500">
-            <span>User ID:</span>
-            <span id="userIdDisplay" class="font-mono bg-gray-200 px-2 py-1 rounded-full text-xs">Loading...</span>
+        <div class="text-right small text-gray-600">
+          <div>User ID: <span id="uidDisplay" class="font-mono text-sm bg-gray-100 px-2 py-1 rounded"></span></div>
         </div>
+      </div>
     </header>
 
-    <main id="main-content" class="hidden">
-        <section id="dashboard" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div class="card p-6 text-center">
-                <h3 class="text-xl font-semibold text-gray-700 mb-2">Total Present Today</h3>
-                <p id="present-count" class="text-5xl font-bold text-green-600">0</p>
-            </div>
-            <div class="card p-6 text-center">
-                <h3 class="text-xl font-semibold text-gray-700 mb-2">Total Absent Today</h3>
-                <p id="absent-count" class="text-5xl font-bold text-red-600">0</p>
-            </div>
-            <div class="card p-6 text-center">
-                <h3 class="text-xl font-semibold text-gray-700 mb-2">Total Students</h3>
-                <p id="total-students-count" class="text-5xl font-bold text-gray-800">0</p>
-            </div>
-            <div class="card p-6 text-center">
-                <h3 class="text-xl font-semibold text-gray-700 mb-2">Today's Attendance Rate</h3>
-                <p id="attendance-rate" class="text-5xl font-bold text-blue-600">0%</p>
-            </div>
-        </section>
+    <!-- top stats and controls -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div class="card p-4 text-center">
+        <div class="text-sm text-gray-500">Selected Date</div>
+        <div class="mt-2">
+          <input id="datePicker" type="date" class="border px-3 py-2 rounded" />
+        </div>
+      </div>
 
-        <section id="controls" class="card mb-8">
-            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
-                <div class="w-full sm:w-1/3">
-                    <input type="text" id="searchInput" placeholder="Search by name, ID, or class..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                </div>
-                <div class="flex flex-wrap items-center justify-end space-x-2 space-y-2 sm:space-y-0">
-                    <button id="addTodayButton" class="btn-primary">Add Today's Date</button>
-                    <button id="addStudentButton" class="btn-primary">Add New Student</button>
-                    <button id="manageClassesButton" class="btn-secondary">Manage Classes</button>
-                    <button id="exportCsvButton" class="btn-secondary">Export to CSV</button>
-                </div>
-            </div>
-        </section>
+      <div class="card p-4">
+        <div class="text-sm text-gray-500">Class filter</div>
+        <div class="mt-2">
+          <select id="classFilter" class="border px-3 py-2 rounded w-full">
+            <option value="All">All classes</option>
+            <option>Sanawy Tahfeez 1</option>
+            <option>Mutawassit 3</option>
+            <option>Mutawassit 2</option>
+            <option>Mutawassit 1</option>
+            <option>Ibtida'i 3</option>
+            <option>Ibtida'i 2</option>
+            <option>Ibtida'i 1</option>
+          </select>
+        </div>
+      </div>
 
-        <section id="filters" class="mb-6">
-            <div class="flex flex-wrap items-center space-x-2">
-                <label for="dateFilter" class="text-gray-700 font-medium">Filter by date:</label>
-                <select id="dateFilter" class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"></select>
-                <button id="allFilterButton" class="badge">All</button>
-                <button id="presentFilterButton" class="badge status-present">Present</button>
-                <button id="lateFilterButton" class="badge status-late">Late</button>
-                <button id="absentFilterButton" class="badge status-absent">Absent</button>
-                <button id="excusedFilterButton" class="badge status-excused">Excused</button>
-            </div>
-        </section>
+      <div class="card p-4 text-center">
+        <div class="text-sm text-gray-500">Present</div>
+        <div id="countPresent" class="text-2xl font-bold text-green-600 mt-2">0</div>
+      </div>
 
-        <section id="table-container" class="card table-responsive">
-            <table id="attendanceTable">
-                <thead>
-                    <tr>
-                        <th>Student ID</th>
-                        <th>Student Name</th>
-                        <th>Class/Section</th>
-                        <th>Dates</th>
-                        <th>Total Present</th>
-                        <th>Total Absent</th>
-                        <th>Attendance Rate (%)</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Table rows will be inserted here by JavaScript -->
-                </tbody>
-            </table>
-        </section>
-    </main>
+      <div class="card p-4 text-center">
+        <div class="text-sm text-gray-500">Absent</div>
+        <div id="countAbsent" class="text-2xl font-bold text-red-600 mt-2">0</div>
+      </div>
+    </div>
 
-    <!-- Modals (Add Student, Manage Classes, Mark Attendance) will go here -->
+    <!-- actions -->
+    <div class="flex justify-between items-center gap-4 mb-4">
+      <div class="flex items-center gap-2">
+        <button id="openAddStudent" class="btn btn-primary">Add Student</button>
+        <input id="searchInput" placeholder="Search by name / student id / class" class="border px-3 py-2 rounded w-96" />
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="exportCSV" class="btn btn-ghost">Export CSV (selected date/class)</button>
+      </div>
+    </div>
 
-</div>
+    <!-- students table -->
+    <div class="card p-4">
+      <div id="noData" class="text-center text-gray-500 py-10">No students found. Add students to get started.</div>
 
-<script type="module">
-import { initializeApp, setLogLevel } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+      <div class="overflow-x-auto">
+        <table id="studentsTable" class="hidden">
+          <thead>
+            <tr>
+              <th class="small">Name</th>
+              <th class="small">Student ID</th>
+              <th class="small">Class</th>
+              <th class="small">Status</th>
+              <th class="small">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="studentsTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 
-setLogLevel('debug');
+  <!-- add/edit student modal -->
+  <div id="studentModal" class="fixed inset-0 flex items-center justify-center hidden z-50">
+    <div class="absolute inset-0 bg-black/40" onclick="closeStudentModal()"></div>
+    <div class="card p-6 z-60 w-full max-w-xl">
+      <h3 id="studentModalTitle" class="text-xl font-bold mb-4">Add Student</h3>
+      <form id="studentForm" class="space-y-3">
+        <input type="hidden" id="studentDocId" />
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Name *</label>
+          <input id="studentName" required class="w-full border px-3 py-2 rounded" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Class *</label>
+          <select id="studentClass" required class="w-full border px-3 py-2 rounded">
+            <option value="">Select class</option>
+            <option>Sanawy Tahfeez 1</option>
+            <option>Mutawassit 3</option>
+            <option>Mutawassit 2</option>
+            <option>Mutawassit 1</option>
+            <option>Ibtida'i 3</option>
+            <option>Ibtida'i 2</option>
+            <option>Ibtida'i 1</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Student ID (optional)</label>
+          <input id="studentUID" class="w-full border px-3 py-2 rounded" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Parent Contact (optional)</label>
+          <input id="studentContact" class="w-full border px-3 py-2 rounded" />
+        </div>
+        <div class="flex justify-end gap-2">
+          <button type="button" onclick="closeStudentModal()" class="btn btn-ghost">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
-const firebaseConfig = {
+  <!-- small toast message -->
+  <div id="toast" class="message hidden"></div>
+
+  <!-- Firebase SDK (v11 modular) -->
+  <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+  import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+  import {
+    getFirestore, collection, doc, setDoc, addDoc, onSnapshot,
+    query, where, getDocs, updateDoc, deleteDoc
+  } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+  // ---------- YOUR FIREBASE CONFIG ----------
+  // You asked me to include your working config. Paste the config you provided:
+  const firebaseConfig = {
     apiKey: "AIzaSyC2_vwTgC-ElAUALXoK3wtLl9HxnHGUlWk",
     authDomain: "my-attendance-tracker-da791.firebaseapp.com",
     projectId: "my-attendance-tracker-da791",
@@ -136,303 +182,314 @@ const firebaseConfig = {
     messagingSenderId: "980096598714",
     appId: "1:980096598714:web:51746387331ce6955eb883",
     measurementId: "G-J7QSGNJJFB"
-};
+  };
+  // ------------------------------------------
 
-const appId = 'my-attendance-tracker-da791';
-let app, db, auth, userId;
+  // DOM references
+  const loadingEl = document.getElementById('loading');
+  const appEl = document.getElementById('app');
+  const uidDisplay = document.getElementById('uidDisplay');
+  const datePicker = document.getElementById('datePicker');
+  const classFilter = document.getElementById('classFilter');
+  const studentsTbody = document.getElementById('studentsTbody');
+  const studentsTable = document.getElementById('studentsTable');
+  const noData = document.getElementById('noData');
+  const searchInput = document.getElementById('searchInput');
+  const countPresentEl = document.getElementById('countPresent');
+  const countAbsentEl = document.getElementById('countAbsent');
 
-const loadingOverlay = document.getElementById('loading-overlay');
-const loadingMessage = document.getElementById('loading-message');
-const mainContent = document.getElementById('main-content');
-const userIdDisplay = document.getElementById('userIdDisplay');
+  const openAddStudentBtn = document.getElementById('openAddStudent');
+  const exportBtn = document.getElementById('exportCSV');
 
-function showLoadingOverlay(message) {
-    loadingMessage.textContent = message;
-    loadingOverlay.classList.remove('hidden');
-}
+  // modal refs
+  const studentModal = document.getElementById('studentModal');
+  const studentForm = document.getElementById('studentForm');
+  const studentModalTitle = document.getElementById('studentModalTitle');
+  const studentDocIdInput = document.getElementById('studentDocId');
+  const studentNameInput = document.getElementById('studentName');
+  const studentClassSelect = document.getElementById('studentClass');
+  const studentUIDInput = document.getElementById('studentUID');
+  const studentContactInput = document.getElementById('studentContact');
 
-function hideLoadingOverlay() {
-    loadingOverlay.classList.add('hidden');
-    mainContent.classList.remove('hidden');
-}
+  const toastEl = document.getElementById('toast');
 
-// ===== Initialize Firebase & Anonymous Auth =====
-app = initializeApp(firebaseConfig);
-auth = getAuth(app);
-db = getFirestore(app);
+  // app state
+  let app, auth, db;
+  let currentUserId = null;
+  let students = []; // loaded students (from students collection)
+  let attendanceMap = new Map(); // key => `${studentId}_${date}` => attendance doc
+  let selectedDate = (new Date()).toISOString().slice(0,10); // default today
+  let selectedClass = 'All';
+  let searchTerm = '';
 
-async function initApp() {
-    showLoadingOverlay("Connecting to cloud database...");
+  // initialize UI defaults
+  datePicker.value = selectedDate;
+
+  function showToast(msg, timeout = 2500) {
+    toastEl.textContent = msg;
+    toastEl.classList.remove('hidden');
+    setTimeout(()=> toastEl.classList.add('hidden'), timeout);
+  }
+
+  // show/hide loading
+  function hideLoading() {
+    loadingEl.classList.add('hidden');
+    appEl.classList.remove('hidden');
+  }
+  function showLoadingMessage(text) {
+    loadingEl.querySelector('h3')?.textContent = text;
+  }
+
+  // open/close student modal
+  function openStudentModal(editStudent = null) {
+    studentModal.classList.remove('hidden');
+    if (editStudent) {
+      studentModalTitle.textContent = 'Edit Student';
+      studentDocIdInput.value = editStudent.id;
+      studentNameInput.value = editStudent.name || '';
+      studentClassSelect.value = editStudent.class_name || '';
+      studentUIDInput.value = editStudent.student_uid || '';
+      studentContactInput.value = editStudent.contact || '';
+    } else {
+      studentModalTitle.textContent = 'Add Student';
+      studentDocIdInput.value = '';
+      studentForm.reset();
+    }
+  }
+  function closeStudentModal() {
+    studentModal.classList.add('hidden');
+  }
+
+  // utility: format YYYY-MM-DD
+  function toYMD(date) {
+    const d = new Date(date);
+    return d.toISOString().slice(0,10);
+  }
+
+  // ---------- Firestore data model chosen ----------
+  // students collection: users/{uid}/students -> documents with { name, student_uid, class_name, contact, created_at }
+  // attendance collection: users/{uid}/attendance -> documents keyed by `${studentId}_${date}`
+  // attendance doc: { studentId, studentName, studentUid, class_name, date: 'YYYY-MM-DD', status, contact, timestamp }
+  // This single attendance collection makes it easy to query by date and class for CSV/export.
+  // --------------------------------------------------
+
+  // Initialize firebase and sign in anonymously
+  async function init() {
     try {
-        const userCredential = await signInAnonymously(auth);
-        userId = userCredential.user.uid;
-        userIdDisplay.textContent = userId;
+      app = initializeApp(firebaseConfig);
+      auth = getAuth(app);
+      db = getFirestore(app);
 
-        // Initialize your data listeners here
-        initializeDataListeners();
-
-        hideLoadingOverlay();
-    } catch (error) {
-        console.error("Firebase auth failed:", error);
-        loadingMessage.textContent = "Failed to connect. Check console logs.";
+      // auth state
+      onAuthStateChanged(auth, async (user) => {
+        if (user) {
+          currentUserId = user.uid;
+          uidDisplay.textContent = currentUserId;
+          hideLoading();
+          // start listeners
+          startStudentsListener();
+          startAttendanceListener();
+        } else {
+          // sign in anonymously
+          try {
+            await signInAnonymously(auth);
+          } catch (err) {
+            console.error('Auth error', err);
+            showLoadingMessage('Auth failed — check console.');
+          }
+        }
+      });
+    } catch (err) {
+      console.error('Initialization error', err);
+      showLoadingMessage('Initialization failed. Check console.');
     }
-}
+  }
 
-// ===== Firestore listeners (students, classes, attendance) =====
-function getStudentCollection() { return collection(db, `artifacts/${appId}/users/${userId}/students`); }
-function getClassesCollection() { return collection(db, `artifacts/${appId}/users/${userId}/classes`); }
-function getAttendanceCollection() { return collection(db, `artifacts/${appId}/users/${userId}/attendance`); }
-
-let studentsData = {}, classesData = {}, attendanceData = {}, datesData = {}, currentFilterDate = null;
-function initializeDataListeners() {
-    if (!userId) return;
-
-    onSnapshot(query(getStudentCollection()), snapshot => {
-        studentsData = {};
-        snapshot.forEach(doc => { studentsData[doc.id] = doc.data(); });
-        renderAttendanceTable();
-        updateDashboardStats();
+  // students listener (realtime)
+  function startStudentsListener() {
+    const studentsCol = collection(db, `users/${currentUserId}/students`);
+    onSnapshot(studentsCol, (snapshot) => {
+      students = [];
+      snapshot.forEach(d => {
+        students.push({ id: d.id, ...d.data() });
+      });
+      renderTable();
+    }, (err) => {
+      console.error('students listener error', err);
     });
+  }
 
-    onSnapshot(query(getClassesCollection()), snapshot => {
-        classesData = {};
-        snapshot.forEach(doc => { classesData[doc.id] = doc.data(); });
-        renderClassList();
+  // attendance listener (realtime) — listens to attendance documents for selectedDate (and updates map)
+  let attendanceUnsub = null;
+  function startAttendanceListener() {
+    // we will listen to all attendance docs for the user (could be large).
+    // Instead we maintain attendance up-to-date by listening to the attendance collection and filtering locally.
+    const attendanceCol = collection(db, `users/${currentUserId}/attendance`);
+    if (attendanceUnsub) attendanceUnsub(); // unsubscribe previous
+    attendanceUnsub = onSnapshot(attendanceCol, (snapshot) => {
+      attendanceMap.clear();
+      snapshot.forEach(d => {
+        const data = d.data();
+        // key is stored as doc id; but we'll compute key studentId_date for quick lookup
+        const key = `${data.studentId}_${data.date}`;
+        attendanceMap.set(key, { id: d.id, ...data });
+      });
+      renderTable();
+    }, (err) => {
+      console.error('attendance listener error', err);
     });
+  }
 
-    onSnapshot(query(getAttendanceCollection()), snapshot => {
-        attendanceData = {}; datesData = {};
-        snapshot.forEach(doc => {
-            attendanceData[doc.id] = doc.data();
-            const date = doc.data().date;
-            if (date) datesData[date] = true;
-        });
-        updateDateFilterDropdown();
-        renderAttendanceTable();
-        updateDashboardStats();
-    });
-}
-
-// ===================================
-// ===== Main Application Logic =====
-// ===================================
-
-const studentDataCache = {};
-const classDataCache = {};
-let currentAttendanceData = {};
-let uniqueDates = new Set();
-let allStudents = [];
-
-// DOM Elements
-const addStudentButton = document.getElementById('addStudentButton');
-const addTodayButton = document.getElementById('addTodayButton');
-const manageClassesButton = document.getElementById('manageClassesButton');
-const exportCsvButton = document.getElementById('exportCsvButton');
-const attendanceTableBody = document.querySelector('#attendanceTable tbody');
-const dateFilter = document.getElementById('dateFilter');
-const searchInput = document.getElementById('searchInput');
-const presentCountEl = document.getElementById('present-count');
-const absentCountEl = document.getElementById('absent-count');
-const totalStudentsCountEl = document.getElementById('total-students-count');
-const attendanceRateEl = document.getElementById('attendance-rate');
-const allFilterButton = document.getElementById('allFilterButton');
-const presentFilterButton = document.getElementById('presentFilterButton');
-const lateFilterButton = document.getElementById('lateFilterButton');
-const absentFilterButton = document.getElementById('absentFilterButton');
-const excusedFilterButton = document.getElementById('excusedFilterButton');
-
-// Utility Functions
-function formatDate(date) {
-    return date.toISOString().split('T')[0];
-}
-
-function getTodayDate() {
-    return formatDate(new Date());
-}
-
-function getStatusClass(status) {
-    switch (status) {
-        case 'Present': return 'status-present';
-        case 'Late': return 'status-late';
-        case 'Absent': return 'status-absent';
-        case 'Excused': return 'status-excused';
-        default: return '';
+  // mark attendance (upsert)
+  async function markAttendance(student, date, status) {
+    try {
+      const key = `${student.id}_${date}`;
+      const docId = `${student.id}_${date}`; // deterministic id for easy upsert
+      const ref = doc(db, `users/${currentUserId}/attendance`, docId);
+      await setDoc(ref, {
+        studentId: student.id,
+        studentName: student.name,
+        studentUid: student.student_uid || '',
+        class_name: student.class_name,
+        date,
+        status,
+        contact: student.contact || '',
+        timestamp: new Date().toISOString()
+      });
+      showToast(`Marked ${student.name} as ${status}`);
+    } catch (err) {
+      console.error('markAttendance error', err);
+      showToast('Error saving attendance (check console)');
     }
-}
+  }
 
-// Modals
-// Add Student Modal
-const addStudentModal = document.createElement('div');
-addStudentModal.className = 'modal fixed inset-0 flex items-center justify-center hidden z-50';
-addStudentModal.innerHTML = `
-<div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md mx-4">
-    <h2 class="text-2xl font-bold mb-4">Add New Student</h2>
-    <form id="addStudentForm">
-        <div class="mb-4">
-            <label for="studentName" class="block text-gray-700">Student Name</label>
-            <input type="text" id="studentName" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
-        </div>
-        <div class="mb-4">
-            <label for="studentId" class="block text-gray-700">Student ID</label>
-            <input type="text" id="studentId" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
-        </div>
-        <div class="mb-4">
-            <label for="studentClass" class="block text-gray-700">Class/Section</label>
-            <input type="text" id="studentClass" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
-        </div>
-        <div class="flex justify-end space-x-2">
-            <button type="button" id="cancelAddStudent" class="btn-secondary">Cancel</button>
-            <button type="submit" class="btn-primary">Add Student</button>
-        </div>
-    </form>
-</div>
-`;
-document.body.appendChild(addStudentModal);
-
-// Manage Classes Modal
-const manageClassesModal = document.createElement('div');
-manageClassesModal.className = 'modal fixed inset-0 flex items-center justify-center hidden z-50';
-manageClassesModal.innerHTML = `
-<div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md mx-4">
-    <h2 class="text-2xl font-bold mb-4">Manage Classes</h2>
-    <ul id="classList" class="mb-4 space-y-2"></ul>
-    <div class="flex space-x-2">
-        <input type="text" id="newClassInput" placeholder="New Class Name" class="flex-grow border border-gray-300 rounded-md shadow-sm p-2">
-        <button id="addClassButton" class="btn-primary">Add Class</button>
-    </div>
-    <div class="flex justify-end mt-4">
-        <button type="button" id="closeManageClasses" class="btn-secondary">Done</button>
-    </div>
-</div>
-`;
-document.body.appendChild(manageClassesModal);
-
-// Mark Attendance Modal
-const markAttendanceModal = document.createElement('div');
-markAttendanceModal.className = 'modal fixed inset-0 flex items-center justify-center hidden z-50';
-markAttendanceModal.innerHTML = `
-<div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md mx-4">
-    <h2 class="text-2xl font-bold mb-4">Mark Attendance</h2>
-    <div id="attendance-list"></div>
-    <div class="flex justify-end mt-4">
-        <button id="closeMarkAttendance" class="btn-secondary">Done</button>
-    </div>
-</div>
-`;
-document.body.appendChild(markAttendanceModal);
-
-// Mark Attendance Today Modal
-const markAttendanceTodayModal = document.createElement('div');
-markAttendanceTodayModal.className = 'modal fixed inset-0 flex items-center justify-center hidden z-50';
-markAttendanceTodayModal.innerHTML = `
-<div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-2xl mx-4">
-    <h2 class="text-2xl font-bold mb-4">Mark Attendance for Today</h2>
-    <div class="table-responsive">
-        <table class="w-full min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student Name</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Class/Section</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                </tr>
-            </thead>
-            <tbody id="markAttendanceTodayBody" class="bg-white divide-y divide-gray-200"></tbody>
-        </table>
-    </div>
-    <div class="flex justify-end mt-4">
-        <button id="saveAttendanceToday" class="btn-primary mr-2">Save All</button>
-        <button id="closeMarkAttendanceToday" class="btn-secondary">Close</button>
-    </div>
-</div>
-`;
-document.body.appendChild(markAttendanceTodayModal);
-
-// ===== UI Logic and Event Listeners =====
-function updateDashboardStats() {
-    const today = getTodayDate();
-    const todayAttendance = Object.values(currentAttendanceData).filter(item => item.date === today);
-    const present = todayAttendance.filter(item => item.status === 'Present' || item.status === 'Late').length;
-    const absent = todayAttendance.filter(item => item.status === 'Absent' || item.status === 'Excused').length;
-    const totalStudents = Object.keys(studentDataCache).length;
-    
-    presentCountEl.textContent = present;
-    absentCountEl.textContent = absent;
-    totalStudentsCountEl.textContent = totalStudents;
-    
-    const attendanceRate = totalStudents > 0 ? (present / totalStudents * 100).toFixed(0) : 0;
-    attendanceRateEl.textContent = `${attendanceRate}%`;
-}
-
-function updateDateFilterDropdown() {
-    dateFilter.innerHTML = '<option value="">All Dates</option>';
-    const sortedDates = Array.from(uniqueDates).sort().reverse();
-    sortedDates.forEach(date => {
-        const option = document.createElement('option');
-        option.value = date;
-        option.textContent = date;
-        dateFilter.appendChild(option);
-    });
-}
-
-function renderAttendanceTable(filteredData = null) {
-    attendanceTableBody.innerHTML = '';
-    const displayData = filteredData || allStudents;
-
-    if (displayData.length === 0) {
-        attendanceTableBody.innerHTML = '<tr><td colspan="8" class="text-center text-gray-500 py-4">No students found. Please add new students.</td></tr>';
-        return;
+  // delete attendance (optional utility)
+  async function deleteAttendance(studentId, date) {
+    try {
+      const docId = `${studentId}_${date}`;
+      await deleteDoc(doc(db, `users/${currentUserId}/attendance`, docId));
+    } catch (err) {
+      console.error('deleteAttendance error', err);
     }
+  }
 
-    displayData.forEach(student => {
-        const studentId = student.id;
-        const studentRecord = currentAttendanceData[studentId] || {};
-        const attendanceCount = Object.values(studentRecord.attendance || {}).filter(s => s === 'Present' || s === 'Late').length;
-        const totalDates = Object.values(studentRecord.attendance || {}).length;
-        const attendanceRate = totalDates > 0 ? (attendanceCount / totalDates * 100).toFixed(0) : 0;
-
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${student.name}</td>
-            <td>${student.studentId}</td>
-            <td>${student.class}</td>
-            <td class="text-center">${totalDates}</td>
-            <td class="text-center">${attendanceCount}</td>
-            <td class="text-center">${totalDates - attendanceCount}</td>
-            <td class="text-center">${attendanceRate}%</td>
-            <td>
-                <button data-id="${studentId}" class="mark-attendance btn-primary text-xs px-2 py-1">Mark</button>
-                <button data-id="${studentId}" class="delete-student btn-secondary text-xs px-2 py-1">Delete</button>
-            </td>
-        `;
-        attendanceTableBody.appendChild(row);
-    });
-}
-
-// Event Listeners
-addStudentButton.addEventListener('click', () => {
-    addStudentModal.classList.remove('hidden');
-});
-
-document.getElementById('cancelAddStudent').addEventListener('click', () => {
-    addStudentModal.classList.add('hidden');
-});
-
-addStudentForm.addEventListener('submit', async (e) => {
+  // add/edit student
+  async function saveStudent(e) {
     e.preventDefault();
-    const studentName = document.getElementById('studentName').value;
-    const studentId = document.getElementById('studentId').value;
-    const studentClass = document.getElementById('studentClass').value;
+    const docId = studentDocIdInput.value;
+    const name = studentNameInput.value.trim();
+    const class_name = studentClassSelect.value;
+    const student_uid = studentUIDInput.value.trim();
+    const contact = studentContactInput.value.trim();
 
-    await addDoc(getStudentCollection(), {
-        name: studentName,
-        studentId: studentId,
-        class: studentClass
-    });
+    if (!name || !class_name) {
+      showToast('Name and Class are required');
+      return;
+    }
 
-    addStudentModal.classList.add('hidden');
-    addStudentForm.reset();
-});
+    try {
+      if (docId) {
+        // update
+        const ref = doc(db, `users/${currentUserId}/students`, docId);
+        await updateDoc(ref, { name, class_name, student_uid, contact });
+        showToast('Student updated');
+      } else {
+        // add
+        await addDoc(collection(db, `users/${currentUserId}/students`), {
+          name, class_name, student_uid, contact, created_at: new Date().toISOString()
+        });
+        showToast('Student added');
+      }
+      closeStudentModal();
+    } catch (err) {
+      console.error('saveStudent error', err);
+      showToast('Error saving student');
+    }
+  }
 
-addTodayButton.addEventListener('click', () => {
-    renderMarkAttendanceToday();
-    markAttendanceTodayMo
+  // delete student
+  async function deleteStudent(studentId) {
+    if (!confirm('Delete this student? This will remove the student document (attendance remains unless you delete attendance docs separately).')) return;
+    try {
+      await deleteDoc(doc(db, `users/${currentUserId}/students`, studentId));
+      showToast('Student deleted');
+    } catch (err) {
+      console.error('deleteStudent error', err);
+      showToast('Error deleting student');
+    }
+  }
+
+  // render function
+  function renderTable() {
+    // apply filters: classFilter, datePicker, search
+    selectedDate = datePicker.value || selectedDate;
+    selectedClass = classFilter.value || 'All';
+    searchTerm = (searchInput.value || '').toLowerCase().trim();
+
+    // build filtered list
+    let list = students.slice();
+    if (selectedClass !== 'All') list = list.filter(s => s.class_name === selectedClass);
+    if (searchTerm) {
+      list = list.filter(s => {
+        const combined = `${s.name} ${s.student_uid || ''} ${s.class_name || ''} ${s.contact || ''}`.toLowerCase();
+        return combined.includes(searchTerm);
+      });
+    }
+
+    // update table visibility
+    if (list.length === 0) {
+      noData.classList.remove('hidden');
+      studentsTable.classList.add('hidden');
+      countPresentEl.textContent = '0';
+      countAbsentEl.textContent = '0';
+      return;
+    } else {
+      noData.classList.add('hidden');
+      studentsTable.classList.remove('hidden');
+    }
+
+    studentsTbody.innerHTML = '';
+
+    // compute counts for selected date/class
+    let presentCount = 0, absentCount = 0;
+    for (const s of list) {
+      const attKey = `${s.id}_${selectedDate}`;
+      const att = attendanceMap.get(attKey);
+      const status = att ? att.status : '—';
+      if (status === 'Present') presentCount++;
+      if (status === 'Absent') absentCount++;
+
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td class="small">${escapeHtml(s.name)}</td>
+        <td class="small">${escapeHtml(s.student_uid || '')}</td>
+        <td class="small">${escapeHtml(s.class_name || '')}</td>
+        <td class="small">
+          ${renderStatusBadge(status)}
+        </td>
+        <td class="small">
+          <div class="flex-row-gap">
+            <button class="status-btn btn-present small" data-action="status" data-id="${s.id}" data-status="Present">Present</button>
+            <button class="status-btn btn-absent small" data-action="status" data-id="${s.id}" data-status="Absent">Absent</button>
+            <button class="status-btn btn-excuse small" data-action="status" data-id="${s.id}" data-status="Excuse">Excuse</button>
+            <button class="status-btn btn-late small" data-action="status" data-id="${s.id}" data-status="Late">Late</button>
+            <button class="btn btn-ghost small" data-action="edit" data-id="${s.id}">Edit</button>
+            <button class="btn btn-ghost small" data-action="delete" data-id="${s.id}">Delete</button>
+          </div>
+        </td>
+      `;
+      studentsTbody.appendChild(row);
+    }
+
+    countPresentEl.textContent = presentCount;
+    countAbsentEl.textContent = absentCount;
+
+    // attach event listeners for newly created buttons
+    studentsTbody.querySelectorAll('button').forEach(btn => {
+      const action = btn.dataset.action;
+      const id = btn.dataset.id;
+      if (action === 'status') {
+        btn.addEventListener('click', async (ev) => {
+          const status = ev.currentTarget.dataset.status;
+          const student = students.find(x => x.id === id);
+    
